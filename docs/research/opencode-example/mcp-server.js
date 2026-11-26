@@ -76,6 +76,10 @@ async function handleRequest(id, method, params) {
         const workingDir = args?.working_dir ?? process.cwd();
         const userApproved = args?.user_approved ?? null;
 
+        // ⚠️ ВНИМАНИЕ: Это заглушка, НЕ реальное подтверждение пользователя.
+        // Аргумент user_approved передаётся агентом сам себе — не является доверенным источником.
+        // Не использовать как основу для контракта подтверждения (см. замечание ревью).
+
         if (userApproved === false) {
           process.stdout.write(makeResponse(id, { content: [{ type: "text", text: `DENIED: ${command}` }], isError: false }) + "\r\n");
         } else if (userApproved === true) {
@@ -112,7 +116,9 @@ process.stdin.on("data", (chunk) => {
     try { msg = JSON.parse(line); } catch(e) { process.stderr.write("[server] Ignored: " + line.substring(0,40) + "\r\n"); continue; }
     const { jsonrpc, method, params, id } = msg;
     if (jsonrpc !== "2.0") return;
-    if (id) handleRequest(id, method, params).catch(e => process.stdout.write(makeError(id, -32603, e.message) + "\r\n"));
+    // ⚠️ Важно: id может быть 0, поэтому проверяем !== undefined, а не if (id)
+    // Иначе запросы с id=0 игнорируются — это дефект примера
+    if (id !== undefined && id !== null) handleRequest(id, method, params).catch(e => process.stdout.write(makeError(id, -32603, e.message) + "\r\n"));
     else if (method) process.stderr.write("[server] notification: " + method + "\r\n");
   }
 });
