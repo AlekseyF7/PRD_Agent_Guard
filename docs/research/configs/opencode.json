@@ -1,0 +1,20 @@
+{
+  "mcp": {
+    "servers": {
+      "guard": {
+        "type": "local",
+        "command": [
+          "C:\\Program Files\\nodejs\\node.exe",
+          "C:\\zmy\\rep\\PRD_Agent_Guard\\docs\\research\\opencode-example\\mcp-server.js"
+        ],
+        "cwd": "C:\\zmy\\rep\\PRD_Agent_Guard",
+        "codemode": false,
+        "timeout": {
+          "startup": 30000,
+          "catalog": 10000,
+          "execution": 60000
+        }
+      }
+    }
+  }
+}
