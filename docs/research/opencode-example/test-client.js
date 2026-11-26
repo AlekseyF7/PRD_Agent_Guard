@@ -58,6 +58,33 @@ async function runTests() {
   const err = responses.filter(r => r.error).length;
   console.error(ok, "ok", err, "errors");
 
-  setTimeout(() => { server.kill(); process.exit(0); }, 2000);
+  // ⚠️ Важно: проверка содержимого ответов (ранее отсутствовала)
+  let contentErrors = 0;
+  
+  // Проверка initialize: должен вернуть protocolVersion и serverInfo
+  const initResp = responses.find(r => r.id === 1);
+  if (!initResp || !initResp.result?.protocolVersion) {
+    console.error("[FAIL] initialize: отсутствует protocolVersion");
+    contentErrors++;
+  }
+  
+  // Проверка tools/list: должен вернуть массив tools
+  const toolsResp = responses.find(r => r.id === 2);
+  if (!toolsResp || !Array.isArray(toolsResp.result?.tools)) {
+    console.error("[FAIL] tools/list: отсутствует массив tools");
+    contentErrors++;
+  }
+  
+  // Проверка test_echo: должен вернуть текст с "Echo:"
+  const echoResp = responses.find(r => r.id === 3);
+  if (!echoResp || !echoResp.result?.content?.[0]?.text?.includes("Echo:")) {
+    console.error("[FAIL] test_echo: отсутствует ожидаемый текст");
+    contentErrors++;
+  }
+
+  const totalFailures = err + contentErrors;
+  console.error(`\nИтого ошибок: ${totalFailures} (${err} JSON + ${contentErrors} содержимое)`);
+  
+  setTimeout(() => { server.kill(); process.exit(totalFailures > 0 ? 1 : 0); }, 2000);
 }
 runTests().catch(e => { console.error("Error:", e); server.kill(); process.exit(1); });
