@@ -49,3 +49,19 @@ Agent Guard — защита от опасных действий coding-аге�
 Правила: [AGENTS.md](AGENTS.md). Профили агентов: [разработчик](agents/developer.md), [тестировщик](agents/tester.md).
 
 Ветки: `features/<имя>/<номер>-<спецификация>` → ревью в → `dev` → релиз `main` по итогам итерации.
+
+
+## Проверка ядра 003
+
+Нужен Node.js 24. Из корня проекта:
+
+```sh
+npm ci --ignore-scripts
+npm run check
+npm test
+```
+
+Это независимая библиотека проверки действий, без запуска команд, LLM и UI.
+Код: [src/core/index.ts](src/core/index.ts). Сборка — в игнорируемом `dist/`.
+Контракт: [003](specs/003-contract-and-core.md), результаты и ограничения:
+[отчёт ядра](docs/research/core-checks.md).
