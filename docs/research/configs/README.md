@@ -62,7 +62,7 @@ node mcp-server.js
 
 ## Где дальше искать информацию
 
-- Результаты экспериментов: [`../EXPERIMENTS.md`](./EXPERIMENTS.md)
-- Отчёт исследования: [`../opencode-research.md`](./opencode-research.md)
-- MCP-сервер (исходный код): [`../opencode-example/mcp-server.js`](./opencode-example/mcp-server.js)
+- Результаты экспериментов: [`../EXPERIMENTS.md`](../EXPERIMENTS.md)
+- Отчёт исследования: [`../opencode-research.md`](../opencode-research.md)
+- MCP-сервер (исходный код): [`../opencode-example/mcp-server.js`](../opencode-example/mcp-server.js)
 

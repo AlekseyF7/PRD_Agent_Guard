@@ -1,0 +1,177 @@
+{
+  "date": "2026-11-27",
+  "opencode": "2.4.2",
+  "node": "24.21.0",
+  "permission_checks": [
+    {
+      "case": "allow-edit",
+      "tool": "edit",
+      "status": "completed",
+      "error": null,
+      "output": "Edited sample.txt (1 replacement)",
+      "fixture_ok": true
+    },
+    {
+      "case": "allow-other",
+      "tool": "bypass_test_echo",
+      "status": "completed",
+      "error": null,
+      "output": "Echo: controlled-other-server",
+      "fixture_ok": true
+    },
+    {
+      "case": "allow-shell",
+      "tool": "shell",
+      "status": "completed",
+      "error": null,
+      "output": "(no output)",
+      "fixture_ok": true
+    },
+    {
+      "case": "allow-write",
+      "tool": "write",
+      "status": "completed",
+      "error": null,
+      "output": "Created file successfully: blocked.txt",
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-echo",
+      "tool": "guard_test_echo",
+      "status": "completed",
+      "error": null,
+      "output": "Echo: controlled-echo",
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-edit",
+      "tool": "edit",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-execute",
+      "tool": "execute",
+      "status": "error",
+      "error": "No tool named \"execute\" is currently available. Please use a tool from the available tool list.",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-move",
+      "tool": "opencode_session_move",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-moveinside",
+      "tool": "opencode_session_move then shell",
+      "status": "internal move allowed; shell still blocked",
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-other",
+      "tool": "bypass_test_echo",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-read",
+      "tool": "read",
+      "status": "completed",
+      "error": null,
+      "output": "Read file <lab>/deny-read/sample.txt, lines 1-1\n1: ORIGINAL-test-only",
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-readexternal",
+      "tool": "read",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-resources",
+      "tool": "opencode_list_mcp_resources",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-shell",
+      "tool": "shell",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-subagent",
+      "tool": "subagent",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    },
+    {
+      "case": "deny-write",
+      "tool": "write",
+      "status": "error",
+      "error": "Blocked by configuration policy",
+      "output": null,
+      "fixture_ok": true
+    }
+  ],
+  "protocol_simulations": [
+    {
+      "case": "allow_once",
+      "result": "allowed_simulation"
+    },
+    {
+      "case": "deny",
+      "result": "denied"
+    },
+    {
+      "case": "decline",
+      "result": "declined"
+    },
+    {
+      "case": "cancel",
+      "result": "cancelled"
+    },
+    {
+      "case": "error",
+      "result": "confirmation_error"
+    },
+    {
+      "case": "agent supplied approval",
+      "result": "invalid_arguments"
+    },
+    {
+      "case": "call cancellation",
+      "result": "cancelled"
+    },
+    {
+      "case": "stdin EOF",
+      "result": "connection_closed"
+    },
+    {
+      "case": "repeat/replay",
+      "result": "new action; old response ignored"
+    },
+    {
+      "case": "wrong response ID/no answer",
+      "result": "no_answer"
+    }
+  ],
+  "human_confirmation_tested": false,
+  "protected_execution_tested": false
+}

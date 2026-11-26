@@ -345,8 +345,8 @@ reload или перезапуск приложения.
 | E2b: test_echo через pipe | OK PASS | "Echo: Hello from Agent Guard" | 25.11.2026 |
 | E2c: OpenCode CLI --standalone | FAIL | MCP не загружается в standalone | 25.11.2026 |
 | E2d: OpenCode Desktop чат | FAIL | Сервер не подключается, инструменты недоступны | 25.11.2026 |
-| E3: deny shell | BLOCKED | Зависит от E1 | - |
-| E4: deny file_edit | BLOCKED | Зависит от E1 | - |
+| E3: deny shell | SEPARATE | Не зависит от MCP, требует проверки встроенных ограничений OpenCode |
+| E4: deny file_edit | SEPARATE | Не зависит от MCP, требует проверки встроенных ограничений OpenCode |
 | E5: ask confirmation | BLOCKED | Зависит от E1, только Desktop | - |
 | E6: LSP diagnostics | BLOCKED | Зависит от E1 | - |
 
@@ -407,7 +407,7 @@ guard_execute_command(approved) -> OK: exit_code: 0
 | Что нужно | Статус | Комментарий |
 |-----------|--------|-------------|
 | Проверенная версия MCP-сервера | OK PASS | agent-guard-mcp v0.1.0, JSON-RPC 2.0 over stdio |
-| Рабочая конфигурация opencode.json | OK PASS | Валидный JSON с правильными путями |
+| Конфигурация opencode.json (JSON валидна) | WARN | JSON проходит валидацию, пути существуют. Не проверена рабочесть на OpenCode v2.4.1 |
 | Формат аргументов инструментов | OK PASS | Определён (см. таблицу в E2) |
 | Формат ответа | OK PASS | { content: [{ type, text }], isError } |
 | Конфигурация запретов | Не проверена | Сервер не подключается из OpenCode |
@@ -419,7 +419,7 @@ guard_execute_command(approved) -> OK: exit_code: 0
 | Команды подключения MCP | OK PASS | node mcp-server.js через JSON-RPC |
 | Аргументы инструментов | OK PASS | Определены для всех 3 инструментов |
 | Условия ожидания/отмены | Не проверено | Сервер не подключается из OpenCode |
-| Источник доверенного решения | HYPOTHESIS | guard_execute_command с user_approved |
+| Источник доверенного решения | EXCLUDED | user_approved — заглушка, не доверенный источник (см. mcp-server.js:79-81) |
 
 ### Для 007 - Итоговые прогоны (Алексей)
 | Что нужно | Статус | Комментарий |
