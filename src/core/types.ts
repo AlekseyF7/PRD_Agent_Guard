@@ -43,6 +43,7 @@ export interface ParsedCommand {
   readonly incomplete: boolean;
 }
 export interface RuleContext {
+  readonly command: string;
   readonly parsed: ParsedCommand;
   readonly cwd: string;
   readonly workspaceRoot: string;

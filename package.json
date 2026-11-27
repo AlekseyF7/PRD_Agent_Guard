@@ -10,10 +10,17 @@
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test dist/tests/*.test.js",
-    "llm:check": "npm run build && node scripts/check-llm.mjs"
+    "llm:check": "npm run build && node scripts/check-llm.mjs",
+    "guard:panel": "node scripts/open-panel.mjs",
+    "guard:server": "node dist/src/mcp/main.js",
+    "guard:check": "npm run build && node scripts/check-guard.mjs"
   },
   "devDependencies": {
     "@types/node": "24.19.4",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
   }
 }
