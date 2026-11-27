@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Action, Explanation } from '../src/core/types.js';
-import { createLlmClient, environmentKeySource, LlmConfigError, MAX_BODY_BYTES, SYSTEM_PROMPT } from '../src/llm/index.js';
+import { createLlmClient, environmentKeySource, LlmConfigError, MAX_BODY_BYTES, PROMPT_VERSION, SYSTEM_PROMPT } from '../src/llm/index.js';
 import type { ApiKeySource, LlmSettings } from '../src/llm/index.js';
 
 // Synthetic test credential, never a working API key.
@@ -209,7 +209,7 @@ test('real loopback HTTP request uses the documented route and no authentication
     });
     const report = JSON.parse(stdout);
     assert.equal(report.result.status, 'available');
-    assert.equal(report.promptVersion, 'agent-guard-explanation-v1');
+    assert.equal(report.promptVersion, PROMPT_VERSION);
     assert.ok(!stdout.includes(TEST_KEY));
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 });
