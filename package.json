@@ -14,6 +14,7 @@
     "guard:panel": "node scripts/open-panel.mjs",
     "guard:server": "node dist/src/mcp/main.js",
     "guard:check": "npm run build && node scripts/check-guard.mjs",
+    "guard:opencode": "npm run build && node scripts/setup-opencode.mjs",
     "vscode:package": "npm run build && node scripts/package-vscode.mjs"
   },
   "devDependencies": {

@@ -276,11 +276,11 @@ MCP-сессии через отказ/разрешение, DOM-состоян�
 
 ```sh
 npm run vscode:package
-code --install-extension artifacts/agent-guard-panel-0.0.2.vsix
+code --install-extension artifacts/agent-guard-panel-0.0.3.vsix
 ```
 
 Если code не доступен в PATH: Extensions → меню ⋯ → Install from VSIX…,
-выбрать файл artifacts/agent-guard-panel-0.0.2.vsix. Если VS Code предложит
+выбрать файл artifacts/agent-guard-panel-0.0.3.vsix. Если VS Code предложит
 перезагрузить окно, выполнить Reload Window. Расширение устанавливает пользователь;
 агент его автоматически не устанавливает и в Marketplace не публикует.
 

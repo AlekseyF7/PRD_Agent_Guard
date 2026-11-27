@@ -1,6 +1,26 @@
 import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 export interface PanelRecord { readonly pid: number; readonly url: string; readonly workspaceRoot: string }
+export async function selectPanelRecord(
+  records: PanelRecord[], roots: string[], canonical: (path: string) => string,
+  current: PanelRecord | undefined, explicit: boolean,
+  state: (record: PanelRecord) => Promise<{ active?: unknown; pending?: unknown }>,
+): Promise<PanelRecord | undefined> {
+  const previous = records.find(record => record.pid === current?.pid && record.url === current.url);
+  if (explicit && previous) return previous;
+  const matching = records.filter(record => roots.includes(canonical(record.workspaceRoot)));
+  const candidates = matching.length ? matching : records;
+  const states = await Promise.all(candidates.map(async record => {
+    try { return { record, state: await state(record) }; } catch { return undefined; }
+  }));
+  const live = states.filter(item => item !== undefined);
+  const activePrevious = live.find(item => item.record === previous && item.state.active);
+  if (activePrevious) return activePrevious.record;
+  const pending = live.filter(item => item.state.pending);
+  if (pending.length === 1) return pending[0]!.record;
+  if (pending.length > 1) return undefined;
+  return live.length === 1 ? live[0]!.record : live.find(item => item.record === previous)?.record;
+}
 export function parsePanelRecord(input: unknown): PanelRecord | undefined {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return;
   const record = input as Record<string, unknown>;
