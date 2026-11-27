@@ -7,20 +7,31 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "check": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json && node scripts/build-vscode.mjs",
+    "check": "tsc -p tsconfig.json --noEmit && tsc -p extensions/vscode/tsconfig.json",
     "test": "npm run build && node --test dist/tests/*.test.js",
     "llm:check": "npm run build && node scripts/check-llm.mjs",
     "guard:panel": "node scripts/open-panel.mjs",
     "guard:server": "node dist/src/mcp/main.js",
-    "guard:check": "npm run build && node scripts/check-guard.mjs"
+    "guard:check": "npm run build && node scripts/check-guard.mjs",
+    "vscode:package": "npm run build && node scripts/package-vscode.mjs"
   },
   "devDependencies": {
+    "@types/jsdom": "30.0.0",
     "@types/node": "24.19.4",
+    "@types/vscode": "1.146.0",
+    "@vscode/vsce": "4.1.1",
+    "esbuild": "0.28.2",
+    "jsdom": "31.0.1",
     "typescript": "7.0.2"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
     "zod": "4.6.7"
+  },
+  "overrides": {
+    "@vscode/vsce": {
+      "minimatch": "11.0.1"
+    }
   }
 }
