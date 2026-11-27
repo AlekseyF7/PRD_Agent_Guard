@@ -1,0 +1,9 @@
+{
+  "workspaceRoot": "REPLACE_WITH_ABSOLUTE_TEST_WORKSPACE",
+  "llm": {
+    "baseURL": "http://localhost:1234/v1",
+    "model": "REPLACE_WITH_MODEL_ID_FROM_LM_STUDIO",
+    "timeoutMs": 180000,
+    "authMode": "none"
+  }
+}

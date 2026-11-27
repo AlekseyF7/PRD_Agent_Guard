@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "rootDir": "../..", "types": ["node", "vscode"], "noEmit": true },
+  "include": ["src/**/*.ts", "../../src/approval/page.ts", "../../src/mcp/panel-record.ts"]
+}

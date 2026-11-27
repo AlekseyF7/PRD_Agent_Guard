@@ -41,7 +41,7 @@ export function validateConfig(input: unknown): CoreConfig {
 
 const reject = (code: CheckError, reason: string): CheckResult => Object.freeze({ decision: 'block', code, reason });
 
-export function createCore(input: unknown, additionalRules: readonly RiskRule[] = []) {
+export function createCore(input: unknown, additionalRules: readonly RiskRule[] = [], parser = parseCommand) {
   const config = validateConfig(input);
   // Additional rules extend defaults instead of silently disabling workspace checks.
   const registry = [...DEFAULT_RULES, ...additionalRules]
@@ -55,8 +55,8 @@ export function createCore(input: unknown, additionalRules: readonly RiskRule[] 
       if (!command.trim() || command.includes('\0')) return reject('INVALID_COMMAND', 'Команда должна быть непустой строкой без NUL.');
       const cwd = canonicalDirectory(request.cwd);
       if (!cwd) return reject('INVALID_CWD', 'Рабочая папка должна быть существующей абсолютной папкой.');
-      const parsed = parseCommand(command);
-      const context = Object.freeze({ parsed: freezeParsed(parsed), cwd, workspaceRoot: config.workspaceRoot });
+      const parsed = parser(command);
+      const context = Object.freeze({ command, parsed: freezeParsed(parsed), cwd, workspaceRoot: config.workspaceRoot });
       const results = registry.map(rule => rule.analyze(context));
       const risks = results.flatMap(result => result.risks).map(risk => {
         if (!POLICY_CATEGORIES.includes(risk.category) || !risk.ruleId || !risk.reason) throw new Error('Invalid rule result');

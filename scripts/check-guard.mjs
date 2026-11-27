@@ -1,0 +1,40 @@
+// Manual smoke check: one harmless command, explicit approval through the panel.
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { createInterface } from 'node:readline/promises';
+import { stdin, stdout } from 'node:process';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+
+let client; let readline; let stopping = false;
+const controller = new AbortController();
+const stop = () => { if (stopping) return; stopping = true; controller.abort(); readline?.close(); void client?.close().catch(() => {}); };
+process.once('SIGINT', stop); process.once('SIGTERM', stop);
+try {
+  const path = process.argv[2]; if (!path) throw Error('No config');
+  const configPath = resolve(path);
+  const config = JSON.parse(readFileSync(configPath, 'utf8').replace(/^\uFEFF/, ''));
+  const reference = config.llm?.authMode === 'apiKey' ? config.llm.credentialRef : undefined;
+  const env = {};
+  if (reference && /^[A-Za-z_][A-Za-z0-9_]*$/.test(reference) && process.env[reference]) env[reference] = process.env[reference];
+  if (process.env.AGENT_GUARD_STATE_DIR) env.AGENT_GUARD_STATE_DIR = process.env.AGENT_GUARD_STATE_DIR;
+  const transport = new StdioClientTransport({ command: process.execPath, args: ['dist/src/mcp/main.js', configPath], env, stderr: 'pipe' });
+  transport.stderr?.on('data', () => { /* no raw forwarding of child diagnostics */ });
+  client = new Client({ name: 'agent-guard-manual-check', version: '0.0.0' });
+  await client.connect(transport);
+  console.log(`MCP подключён. Откройте панель во втором терминале: npm run guard:panel -- ${transport.pid}`);
+  console.log('Панель остаётся подключённой до q или Ctrl+C. Команда только выводит guard-check.');
+  const command = process.platform === 'win32' ? "Write-Output 'guard-check'" : "printf 'guard-check'";
+  const once = process.argv.includes('--once');
+  if (!once) { readline = createInterface({ input: stdin, output: stdout }); readline.on('SIGINT', stop); }
+  while (!stopping) {
+    const result = await client.callTool({ name: 'guard_execute_command', arguments: { command, cwd: config.workspaceRoot } }, undefined, { signal: controller.signal, timeout: Math.min(2_147_483_647, (config.llm.timeoutMs ?? 30000) + (config.approvalTimeoutMs ?? 120000) + (config.commandTimeoutMs ?? 120000) + 30000) });
+    for (const item of result.content ?? []) if (item.type === 'text') console.log(item.text);
+    if (once) { if (result.isError) process.exitCode = 1; break; }
+    const answer = await readline.question('Enter — новая проверка в той же панели; q — завершить: ', { signal: controller.signal });
+    if (answer.trim().toLowerCase() === 'q') break;
+  }
+} catch {
+  if (!stopping) console.error('Проверка не завершена: проверьте путь конфигурации, запуск сервера и время ожидания. Сырые ошибки скрыты.');
+  if (!stopping) process.exitCode = 1;
+} finally { readline?.close(); await client?.close(); process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop); }

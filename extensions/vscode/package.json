@@ -1,0 +1,54 @@
+{
+  "name": "agent-guard-panel",
+  "displayName": "Agent Guard",
+  "description": "Подтверждение действий MCP-сервера Agent Guard внутри VS Code",
+  "version": "0.0.4",
+  "publisher": "agent-guard-team",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.cjs",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "extensionKind": [
+    "ui"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentGuard.settings",
+        "title": "Agent Guard: настройки"
+      },
+      {
+        "command": "agentGuard.openPanel",
+        "title": "Agent Guard: открыть панель"
+      },
+      {
+        "command": "agentGuard.selectServer",
+        "title": "Agent Guard: выбрать сервер"
+      }
+    ],
+    "configuration": {
+      "title": "Agent Guard",
+      "properties": {
+        "agentGuard.autoOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Показывать панель рядом с редактором при новом запросе подтверждения, не перехватывая фокус."
+        }
+      }
+    }
+  },
+  "type": "module"
+}
