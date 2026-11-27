@@ -2,7 +2,7 @@
   "name": "agent-guard-panel",
   "displayName": "Agent Guard",
   "description": "Подтверждение действий MCP-сервера Agent Guard внутри VS Code",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "agent-guard-team",
   "license": "UNLICENSED",
   "engines": {
@@ -26,6 +26,10 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "agentGuard.settings",
+        "title": "Agent Guard: настройки"
+      },
       {
         "command": "agentGuard.openPanel",
         "title": "Agent Guard: открыть панель"

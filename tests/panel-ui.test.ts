@@ -113,3 +113,23 @@ test('disconnect preserves last known result and hides stale actions', async t =
   assert.ok(!document.getElementById('error')!.textContent!.includes('Failed to fetch'));
   assert.equal(document.getElementById('cancel')!.hidden, true);
 });
+
+test('history is loaded on expansion, renders untrusted text safely, and has no approval controls', async t => {
+  let historyReads = 0;
+  const state = { workspaceRoot: '/synthetic', historyCount: 1, historyVersion: 1, last: complete };
+  const entries = [{ finishedAt: new Date().toISOString(), command: '<img src=x onerror=alert(1)>', cwd: '/synthetic', explanation: '**Описание** <script>unsafe</script>', decision: 'allow_once', result: complete, shortened: true }];
+  const dom = new JSDOM(approvalPage('test-nonce'), { runScripts: 'dangerously', url: 'http://127.0.0.1:1234/#token=fake-test-token', beforeParse(window) {
+    Object.defineProperty(window, 'AbortSignal', { value: AbortSignal });
+    window.fetch = async input => {
+      if (String(input) === '/api/history') { historyReads++; return new Response(JSON.stringify(entries)); }
+      return new Response(JSON.stringify(state));
+    };
+  } }); t.after(() => dom.window.close()); await tick();
+  assert.equal(historyReads, 0);
+  const history = dom.window.document.getElementById('history') as HTMLDetailsElement;
+  history.open = true; history.dispatchEvent(new dom.window.Event('toggle')); await tick();
+  const list = dom.window.document.getElementById('history-list')!;
+  assert.ok(list.textContent!.includes('<img')); assert.ok(list.textContent!.includes('сокращены'));
+  assert.equal(list.querySelector('img,script,button'), null);
+  assert.equal(list.querySelector('strong')?.textContent, 'Описание');
+});

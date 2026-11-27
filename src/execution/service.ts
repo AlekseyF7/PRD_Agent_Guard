@@ -1,6 +1,6 @@
 import { lstatSync } from 'node:fs';
-import type { Action, Explanation } from '../core/types.js';
-import type { AttemptView, ExecutionDependencies, ExecutionResult } from './types.js';
+import type { Action, Explanation, UserDecision } from '../core/types.js';
+import type { AttemptView, ExecutionDependencies, ExecutionResult, HistoryEntry } from './types.js';
 
 function footprint(action: Action): string {
   return JSON.stringify([action.cwd, ...action.affectedPaths].map(path => {
@@ -21,18 +21,22 @@ export function createExecutionService(initial: ExecutionDependencies) {
   let active: AbortController | undefined;
   let view: AttemptView | undefined;
   let last: ExecutionResult | undefined;
+  const history: HistoryEntry[] = [];
+  let historyVersion = 0;
   let closed = false;
   const no = (code: string, message: string, actionId?: string): ExecutionResult => Object.freeze({ status: 'not_executed', code, message, ...(actionId ? { actionId } : {}) });
-  async function run(input: unknown, external?: AbortSignal): Promise<ExecutionResult> {
+  async function run(input: unknown, external?: AbortSignal, capture?: (action?: Action, view?: AttemptView, decision?: UserDecision) => void): Promise<ExecutionResult> {
     if (closed) return no('CLOSED', 'Сервер завершает работу.');
     if (active) return no('BUSY', 'Другая попытка ещё активна; повторите позже.');
     const current = deps;
     const controller = new AbortController(); active = controller;
     const signal = external ? AbortSignal.any([controller.signal, external]) : controller.signal;
     let action: Action | undefined;
+    let decision: UserDecision | undefined;
     try {
       if (signal.aborted) return no('CANCELLED', 'Попытка отменена до запуска.');
       const checked = current.check(input);
+      if ('action' in checked) action = checked.action;
       if (checked.decision === 'block') return no(checked.code, checked.reason, 'action' in checked ? checked.action.actionId : undefined);
       action = checked.action;
       const before = footprint(action);
@@ -54,7 +58,6 @@ export function createExecutionService(initial: ExecutionDependencies) {
       const waitController = new AbortController();
       const waitSignal = AbortSignal.any([signal, waitController.signal]);
       const timer = setTimeout(() => waitController.abort(), current.approvalTimeoutMs);
-      let decision;
       try { decision = await abortable(current.approve({ action, explanation, shell: current.shell }, waitSignal), waitSignal); }
       catch { return no(signal.aborted ? 'CANCELLED' : waitController.signal.aborted ? 'NO_ANSWER' : 'APPROVAL_ERROR', 'Разрешение не получено.', action.actionId); }
       finally { clearTimeout(timer); waitController.abort(); }
@@ -73,15 +76,30 @@ export function createExecutionService(initial: ExecutionDependencies) {
       return view?.phase === 'executing'
         ? { status: 'unknown', code: 'RESULT_UNKNOWN', actionId: action!.actionId, exitCode: null, stdout: '', stderr: '', stdoutTruncated: false, stderrTruncated: false }
         : no(signal.aborted ? 'CANCELLED' : 'CHECK_FAILED', 'Проверка или подтверждение не завершены.', action?.actionId);
-    } finally { view = undefined; active = undefined; }
+    } finally { capture?.(action, view, decision); view = undefined; active = undefined; }
   }
   return {
     async run(input: unknown, signal?: AbortSignal) {
-      const result = await run(input, signal);
-      if (!(result.status === 'not_executed' && result.code === 'BUSY')) last = result;
+      let action: Action | undefined; let attempt: AttemptView | undefined; let decision: UserDecision | undefined;
+      const result = await run(input, signal, (a, v, d) => { action = a; attempt = v; decision = d; });
+      if (!(result.status === 'not_executed' && result.code === 'BUSY')) {
+        last = result;
+        let shortened = false;
+        const clip = (text: string, limit: number) => { if (text.length > limit) { shortened = true; return text.slice(0, limit); } return text; };
+        const brief = result.status === 'not_executed' ? result : Object.freeze({ ...result, stdout: clip(result.stdout, 4096), stderr: clip(result.stderr, 4096) });
+        const explanation = attempt?.explanation;
+        const entry = { finishedAt: new Date().toISOString(),
+          ...(action ? { command: clip(action.command, 8192), cwd: action.cwd } : {}),
+          ...(explanation ? { explanation: clip(explanation.status === 'available' ? explanation.text : explanation.error.message, 4096) } : {}),
+          ...(decision ? { decision: decision.outcome } : {}),
+          result: brief, shortened };
+        history.push(Object.freeze(entry)); if (history.length > 50) history.shift();
+        historyVersion++;
+      }
       return result;
     },
-    state: () => ({ active: view, last }),
+    state: () => ({ active: view, last, historyCount: history.length, historyVersion }),
+    history: () => Object.freeze([...history]),
     cancel: () => active?.abort(),
     replace(next: ExecutionDependencies) { active?.abort(); deps = next; },
     close() { closed = true; active?.abort(); },

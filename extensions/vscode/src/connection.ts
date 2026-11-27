@@ -53,7 +53,7 @@ export function parseUiMessage(input: unknown): UiMessage | undefined {
   const value = input as Record<string, unknown>;
   if (value.type !== 'guard-request' || !Number.isSafeInteger(value.id) || Number(value.id) <= 0) return;
   if (Object.keys(value).some(key => !['type', 'id', 'path', 'body'].includes(key))) return;
-  if (value.path === '/api/state' && !('body' in value)) return value as unknown as UiMessage;
+  if (['/api/state', '/api/history'].includes(String(value.path)) && !('body' in value)) return value as unknown as UiMessage;
   const body = value.body;
   if (!body || typeof body !== 'object' || Array.isArray(body)) return;
   if (value.path === '/api/cancel' && Object.keys(body).length === 0) return value as unknown as UiMessage;
@@ -66,11 +66,17 @@ export function parseUiMessage(input: unknown): UiMessage | undefined {
 // The secret stays here, in extension host. The Webview never sees URL or token.
 export async function panelRequest(record: PanelRecord, message: UiMessage, fetchApi: typeof fetch = globalThis.fetch): Promise<unknown> {
   const checked = parsePanelRecord(record); if (!checked || !parseUiMessage(message)) throw Error('Invalid bridge request');
+  return hostRequest(checked, message.path, message.body, 3000, fetchApi);
+}
+// Administrative calls originate only from extension host, never from Webview messages.
+export async function hostRequest(record: PanelRecord, path: string, body?: Record<string, unknown>, timeoutMs = 3000, fetchApi: typeof fetch = globalThis.fetch): Promise<unknown> {
+  const checked = parsePanelRecord(record);
+  if (!checked || !['/api/state', '/api/history', '/api/decision', '/api/cancel', '/api/settings', '/api/key', '/api/connection-check'].includes(path)) throw Error('Invalid host request');
   const url = new URL(checked.url); const token = url.hash.slice('#token='.length);
-  const response = await fetchApi(`${url.origin}${message.path}`, {
-    method: message.body === undefined ? 'GET' : 'POST', redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(3000),
-    headers: { Authorization: `Bearer ${token}`, Origin: url.origin, ...(message.body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    ...(message.body === undefined ? {} : { body: JSON.stringify(message.body) }),
+  const response = await fetchApi(`${url.origin}${path}`, {
+    method: body === undefined ? 'GET' : 'POST', redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(timeoutMs),
+    headers: { Authorization: `Bearer ${token}`, Origin: url.origin, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (!response.ok) throw Error('Panel unavailable');
   return response.json();

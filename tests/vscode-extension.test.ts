@@ -42,7 +42,7 @@ test('bundled extension auto-opens a secret-free Webview and exposes no approval
   module.exports.activate({ subscriptions });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(created, 1); assert.equal(preserveFocus, true);
-  assert.deepEqual([...commands.keys()].sort(), ['agentGuard.openPanel', 'agentGuard.selectServer']);
+  assert.deepEqual([...commands.keys()].sort(), ['agentGuard.openPanel', 'agentGuard.selectServer', 'agentGuard.settings']);
   assert.ok(!html.includes(secret)); assert.match(bar.text, /нужно решение/);
   // Check the actual bundled function's serialized Webview script, not just source.
   const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://webview.invalid/', beforeParse(window) {

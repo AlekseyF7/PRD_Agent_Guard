@@ -26,3 +26,12 @@ export interface AttemptView {
   readonly shell: ShellProfile;
   readonly explanation?: Explanation;
 }
+export interface HistoryEntry {
+  readonly finishedAt: string;
+  readonly command?: string;
+  readonly cwd?: string;
+  readonly explanation?: string;
+  readonly decision?: UserDecision['outcome'];
+  readonly result: ExecutionResult;
+  readonly shortened: boolean;
+}

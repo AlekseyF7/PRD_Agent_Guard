@@ -1,7 +1,7 @@
 import type { Action } from '../core/types.js';
-import type { ApprovalRequest, AttemptView, ExecutionResult } from '../execution/types.js';
+import type { ApprovalRequest, AttemptView, ExecutionResult, HistoryEntry } from '../execution/types.js';
 type Mode = 'browser' | 'vscode';
-interface UiState { workspaceRoot: string; active?: AttemptView; pending?: ApprovalRequest & { nonce: string }; last?: ExecutionResult }
+interface UiState { workspaceRoot: string; active?: AttemptView; pending?: ApprovalRequest & { nonce: string }; last?: ExecutionResult; historyCount?: number; historyVersion?: number }
 
 // Kept self-contained: its compiled function body is shared by browser and Webview.
 function panelClient(mode: Mode) {
@@ -24,6 +24,32 @@ function panelClient(mode: Mode) {
   const element = (id: string) => document.getElementById(id)!;
   const put = (id: string, text: string) => { element(id).textContent = text; };
   const button = (id: string) => element(id) as HTMLButtonElement;
+  let historyVersion = -1; let historyLoading = false;
+  async function loadHistory() {
+    if (historyLoading) return; historyLoading = true;
+    try {
+      const entries = await api('/api/history') as unknown as readonly HistoryEntry[];
+      const target = element('history-list'); target.replaceChildren();
+      for (const entry of [...entries].reverse()) {
+        const details = document.createElement('details');
+        const summary = document.createElement('summary');
+        const label = resultLabel(entry.result);
+        summary.textContent = new Date(entry.finishedAt).toLocaleTimeString() + ' · ' + label.text;
+        details.dataset.tone = label.tone; details.append(summary);
+        const line = (tag: string, text: string) => { const node = document.createElement(tag); node.textContent = text; details.append(node); };
+        line('pre', entry.command ?? 'Некорректный запрос без зафиксированной команды');
+        if (entry.cwd) line('small', entry.cwd);
+        if (entry.decision) line('p', 'Решение: ' + ({ allow_once: 'разрешено один раз', allow_once_without_explanation: 'разрешено без объяснения', deny: 'отказ', cancel: 'отмена', no_answer: 'нет ответа', error: 'ошибка подтверждения' }[entry.decision]));
+        if (entry.explanation) { const explanation = document.createElement('div'); richText(explanation, entry.explanation); details.append(explanation); }
+        if (entry.result.status === 'not_executed') line('p', entry.result.message);
+        else { line('p', 'Код завершения: ' + entry.result.exitCode); if (entry.result.stdout) line('pre', entry.result.stdout); if (entry.result.stderr) line('pre', entry.result.stderr); }
+        if (entry.shortened || (entry.result.status !== 'not_executed' && (entry.result.stdoutTruncated || entry.result.stderrTruncated))) line('small', 'Длинные данные в этой записи сокращены.');
+        target.append(details);
+      }
+      if (!entries.length) target.textContent = 'Завершённых действий пока нет.';
+    } catch { element('history-list').textContent = 'История недоступна. Проверьте подключение к серверу.'; }
+    finally { historyLoading = false; }
+  }
   function status(label: string, tone: string) { put('status', label); element('status').dataset.tone = tone; }
   function richText(target: HTMLElement, text: string) {
     target.replaceChildren(); let list: HTMLUListElement | undefined;
@@ -81,6 +107,11 @@ function panelClient(mode: Mode) {
   }
   function render(state: UiState) {
     latest = state; put('error', ''); put('workspace', state.workspaceRoot);
+    put('history-count', String(state.historyCount ?? 0));
+    if (state.historyVersion !== historyVersion) {
+      historyVersion = state.historyVersion ?? 0;
+      if ((element('history') as HTMLDetailsElement).open) void loadHistory();
+    }
     if (state.active) lastCard = state.active;
     const card = state.active ?? (state.last?.actionId === lastCard?.action.actionId ? lastCard : undefined);
     pending = state.pending;
@@ -118,6 +149,11 @@ function panelClient(mode: Mode) {
     finally { sending = false; await refresh(); }
   }
   button('deny').onclick = () => { void decide(true); }; button('allow').onclick = () => { void decide(false); };
+  button('settings').onclick = () => {
+    if (bridge) bridge.postMessage({ type: 'guard-settings' });
+    else put('error', 'Настройки доступны в VS Code: команда Agent Guard: настройки.');
+  };
+  element('history').ontoggle = () => { if ((element('history') as HTMLDetailsElement).open) void loadHistory(); };
   button('cancel').onclick = async () => { try { await api('/api/cancel', {}); } finally { await refresh(); } };
   window.addEventListener('pagehide', () => {
     if (pending && mode === 'browser') void fetch('/api/cancel', { method: 'POST', headers: { Authorization: 'Bearer ' + (token ?? ''), 'Content-Type': 'application/json' }, body: '{}', keepalive: true }).catch(() => {});
@@ -195,6 +231,9 @@ button:disabled { opacity: .5; cursor: wait; }
 #allow:hover:not(:disabled) { background: linear-gradient(135deg, #8A50EF, #A16FF2); box-shadow: 0 4px 24px #7B3FE444; }
 #deny { color: var(--danger); background: #FF94A80A; border-color: #FF94A84D; flex: 1 1 120px; }
 #deny:hover:not(:disabled) { background: #FF94A819; border-color: var(--danger); }
+#settings { background: #7B3FE41A; color: var(--text); border-color: var(--border); }
+#history-list details[data-tone=success] > summary { color: var(--mint); }
+#history-list details[data-tone=denied] > summary, #history-list details[data-tone=error] > summary { color: var(--danger); }
 #cancel { background: transparent; color: var(--muted); border-color: var(--border); margin-top: 12px; }
 #cancel:hover { color: var(--text); background: #FFFFFF06; }
 #error { color: var(--warning); line-height: 1.6; }
@@ -220,5 +259,5 @@ footer { margin: 22px 2px 0; padding-top: 14px; border-top: 1px solid var(--bord
 [hidden] { display: none !important; }
 @media (max-width: 520px) { main { padding: 20px 14px; } header { gap: 16px; } section { padding: 18px 16px; } h1 { font-size: 23px; } #status { font-size: 11px; } pre { font-size: 12px; padding: 12px; } #command { font-size: 13px; } .eyebrow { font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
-</style></head><body><main><header><div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none"><path d="M16 2 29 7v10c0 8-6 13-13 17C9 30 3 25 3 17V7L16 2Z" stroke="#7B3FE4" stroke-width="2"/><path d="m10 17 4 4 8-9" stroke="#42E3B4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><small class="eyebrow">КОНТРОЛЬ ДЕЙСТВИЙ АГЕНТА</small><h1>Agent Guard</h1></div></div><span id="status" role="status" aria-live="polite">Подключение…</span></header><p id="error" role="alert"></p><section id="action-section"><p class="section-label">ПРОВЕРКА КОМАНДЫ</p><small id="workspace"></small><h2 id="heading">Ожидание действия</h2><div id="action-content" hidden><p id="shell"></p><pre id="command"></pre><p id="cwd"></p><p id="risk-summary"></p><small id="analysis"></small><p id="paths"></p><h3>Объяснение</h3><div id="explanation"></div></div><div id="buttons" hidden><button id="deny">Отказать</button><button id="allow">Разрешить один раз</button></div><button id="cancel" hidden>Отменить попытку</button></section><section id="result-section"><h2 id="result-title">Последний результат</h2><p id="result-summary">Пока нет результатов</p><div id="result-detail" hidden><small id="result-id"></small><p id="result-message"></p><div id="stdout-wrap" hidden><h3>Вывод команды</h3><pre id="stdout"></pre></div><div id="stderr-wrap" hidden><h3>Сообщения об ошибках</h3><pre id="stderr"></pre></div><p id="truncated"></p><details><summary>Технические данные</summary><pre id="technical"></pre></details></div></section><footer>Каждое разрешение относится только к показанному действию и действует один раз.</footer></main><script nonce="${nonce}">(${panelClient.toString()})(${JSON.stringify(mode)});</script></body></html>`;
+</style></head><body><main><header><div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 36" fill="none"><path d="M16 2 29 7v10c0 8-6 13-13 17C9 30 3 25 3 17V7L16 2Z" stroke="#7B3FE4" stroke-width="2"/><path d="m10 17 4 4 8-9" stroke="#42E3B4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><small class="eyebrow">КОНТРОЛЬ ДЕЙСТВИЙ АГЕНТА</small><h1>Agent Guard</h1></div></div><span id="status" role="status" aria-live="polite">Подключение…</span><button id="settings">Настройки</button></header><p id="error" role="alert"></p><section id="action-section"><p class="section-label">ПРОВЕРКА КОМАНДЫ</p><small id="workspace"></small><h2 id="heading">Ожидание действия</h2><div id="action-content" hidden><p id="shell"></p><pre id="command"></pre><p id="cwd"></p><p id="risk-summary"></p><small id="analysis"></small><p id="paths"></p><h3>Объяснение</h3><div id="explanation"></div></div><div id="buttons" hidden><button id="deny">Отказать</button><button id="allow">Разрешить один раз</button></div><button id="cancel" hidden>Отменить попытку</button></section><section id="result-section"><h2 id="result-title">Последний результат</h2><p id="result-summary">Пока нет результатов</p><div id="result-detail" hidden><small id="result-id"></small><p id="result-message"></p><div id="stdout-wrap" hidden><h3>Вывод команды</h3><pre id="stdout"></pre></div><div id="stderr-wrap" hidden><h3>Сообщения об ошибках</h3><pre id="stderr"></pre></div><p id="truncated"></p><details><summary>Технические данные</summary><pre id="technical"></pre></details></div></section><section><details id="history"><summary>История сессии · <span id="history-count">0</span></summary><p><small>Последние 50 завершённых попыток. Исчезнет после завершения сервера.</small></p><div id="history-list"></div></details></section><footer>Каждое разрешение относится только к показанному действию и действует один раз.</footer></main><script nonce="${nonce}">(${panelClient.toString()})(${JSON.stringify(mode)});</script></body></html>`;
 }
