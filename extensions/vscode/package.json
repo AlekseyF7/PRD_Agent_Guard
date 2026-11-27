@@ -2,7 +2,7 @@
   "name": "agent-guard-panel",
   "displayName": "Agent Guard",
   "description": "Подтверждение действий MCP-сервера Agent Guard внутри VS Code",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "agent-guard-team",
   "license": "UNLICENSED",
   "engines": {
