@@ -1,0 +1,7 @@
+{
+  "baseURL": "https://api.groq.com/openai/v1",
+  "model": "openai/gpt-oss-20b",
+  "timeoutMs": 30000,
+  "authMode": "apiKey",
+  "credentialRef": "AGENT_GUARD_LLM_API_KEY"
+}
