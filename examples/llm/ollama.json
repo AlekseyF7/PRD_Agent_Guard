@@ -1,0 +1,6 @@
+{
+  "baseURL": "http://localhost:11434/v1",
+  "model": "REPLACE_WITH_ACTUAL_LOCAL_MODEL_ID",
+  "timeoutMs": 60000,
+  "authMode": "none"
+}

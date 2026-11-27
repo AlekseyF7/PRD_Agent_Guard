@@ -65,3 +65,13 @@ npm test
 Код: [src/core/index.ts](src/core/index.ts). Сборка — в игнорируемом `dist/`.
 Контракт: [003](specs/003-contract-and-core.md), результаты и ограничения:
 [отчёт ядра](docs/research/core-checks.md).
+
+
+## Проверка клиента LLM 005
+
+Код: [src/llm/index.ts](src/llm/index.ts). Автотесты входят в `npm test`.
+Для ручного вызова настроить окружение и выполнить `npm run llm:check`:
+[инструкция для Groq и локального сервера](docs/research/llm-checks.md).
+Примеры не содержат ключей: [Groq](examples/llm/groq.json),
+[локальный API](examples/llm/ollama.json).
+Реальные облачный и локальный прогоны ещё требуются; меню настраивается в 004.
